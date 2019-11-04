@@ -1,0 +1,16 @@
+{
+  "short_name": "PWA",
+  "name": "Assignment 1 - PWA",
+  "icons": [
+    {
+      "src": "/images/OSMlogo.jpg",
+      "type": "image/jpg",
+      "sizes": "1024x1024"
+    }
+  ],
+  "start_url": "/polls/?source=pwa",
+  "background_color": "#3367D6",
+  "display": "standalone",
+  "scope": "/polls/",
+  "theme_color": "#3367D6"
+}
