@@ -11,12 +11,38 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
 import os
+import socket
+from django.urls import path, include, reverse_lazy, reverse
+
+from . import secrets
+SECRETS = secrets.get_secrets()
+secrets.insert_domainname_in_conf(SECRETS["NGINX_CONF"], SECRETS["MY_DOMAIN_NAME"])
+secrets.insert_imagename_in_compose(SECRETS["DOCKER_COMPOSE_FILE"], SECRETS["DOCKER_IMAGE"])
+
+## Need to change '/' to '\\' for Windows. Double backslash is because \ normally denotes an escape character
+if os.name == "nt":
+    secrets.insert_projectname_in_uwsgi_ini(__file__.split("\\")[-2], "uwsgi.ini")
+else:
+    secrets.insert_projectname_in_uwsgi_ini(__file__.split("/")[-2], "uwsgi.ini")
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-import fix_gdal
-fix_gdal.fix()
+if os.name == "nt":
+    import fix_gdal
+    fix_gdal.fix()
+
+if os.name == "nt":
+    import platform
+
+    OSGEO4W = r"C:\OSGeo4W"
+    if '64' in platform.architecture()[0]:
+        OSGEO4W += "64"
+    assert os.path.isdir(OSGEO4W), "Directory does not exist: " + OSGEO4W
+    os.environ['OSGEO4W_ROOT'] = OSGEO4W
+    os.environ['GDAL_DATA'] = "C:\Program Files\GDAL\gdal-data"  # OSGEO4W + r"\share\gdal"
+    os.environ['PROJ_LIB'] = OSGEO4W + r"\share\proj"
+    os.environ['PATH'] = OSGEO4W + r"\bin;" + os.environ['PATH']
 
 PWA_SERVICE_WORKER_PATH = os.path.join(BASE_DIR, 'polls/templates/polls', 'serviceworker.js')
 
@@ -24,12 +50,13 @@ PWA_SERVICE_WORKER_PATH = os.path.join(BASE_DIR, 'polls/templates/polls', 'servi
 # See https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '0v#*=@#@7pi+rrzn=ve347lrqx%7#e_v1=6f#6$4(93t!f!l7d'
+SECRET_KEY = SECRETS["SECRET_KEY"]
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*', ]
+CORS_ORIGIN_ALLOW_ALL = True
 
 
 # Application definition
@@ -44,13 +71,14 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.gis',
     'pwa',
+    'leaflet',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    #'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -80,15 +108,7 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/2.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis',#'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'GaryDB',
-        'HOST': 'localhost',
-        'USER': 'postgres',
-        'PASSWORD': 'Garykelly16',
-    }
-}
+DATABASES = SECRETS["DATABASES"]
 
 
 # Password validation
@@ -128,7 +148,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
 
 STATIC_URL = '/static/'
-
+STATIC_ROOT = os.path.join(BASE_DIR,'static')
 
 PWA_APP_NAME = 'Assignment 1'
 PWA_APP_DESCRIPTION = "Application to display user location"
@@ -140,18 +160,24 @@ PWA_APP_ORIENTATION = 'any'
 PWA_APP_START_URL = '/'
 PWA_APP_ICONS = [
     {
-        'src': '/static/images/OSMlogo',
+        'src': '{STATIC_URL}/images/OSMlogo',
         'sizes': '1024x1024'
     }
 ]
 
 
-LEAFLET_CONFIG = {
-    'TILES': [('OSM','https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{"useCache": True, "crossOrigin": True})],
-    'PLUGINS': {
-        'PouchDBCached': {
-            'js': 'https://unpkg.com/leaflet.tilelayer.pouchdbcached@latest/L.TileLayer.PouchDBCached.js',
-            'auto-include': True,
-        },
-    }
-}
+
+
+# SECURITY WARNING: don't run with debug turned on in production!
+# Your computer hostname goes here
+if socket.gethostname() in SECRETS["ALLOWED_HOSTNAMES"]:
+    DEBUG = True
+    TEMPLATES[0]["OPTIONS"]["debug"] = True
+else:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    DEBUG = False
+    TEMPLATES[0]["OPTIONS"]["debug"] = False

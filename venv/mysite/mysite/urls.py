@@ -15,9 +15,12 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import include, path
+from polls import views
 
 urlpatterns = [
     path('polls/', include('polls.urls')),
     path('', include('pwa.urls')),
     path('admin/', admin.site.urls),
+    #path('map/', views.MapPage.as_view(), name='views_MapPage_as_view'),
 ]
+

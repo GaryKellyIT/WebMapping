@@ -1,8 +1,11 @@
 <!DOCTYPE html>
 <html>
 {% load pwa %}
+{% load leaflet_tags %}
 <head>
     {% progressive_web_app_meta %}
+	{% leaflet_js %}
+    {% leaflet_css %}
 	<title>Assignment 1 - PWA</title>
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -20,7 +23,6 @@
 		}
 		#map {
 			width: 600px;
-			height: 400px;
 		}
         .header img {
           float: right;
@@ -34,32 +36,101 @@
           text-align: center;
           top: 15px;
         }
+
+
+		/* Style the search field */
+		.header form input[type=text] {
+			width: 20%;
+			background: #f1f1f1;
+			float: left;
+			padding: 10px;
+			font-size: 17px;
+			border: 1px solid grey;
+		}
+
+		/* Style the submit button */
+		form.example button {
+			width: 5%;
+			background: #2196F3;
+			color: white;
+			border-left: none; /* Prevent double borders */
+			cursor: pointer;
+			float: left;
+			padding: 10px;
+			font-size: 17px;
+			border: 1px solid grey;
+		}
+
+		form.example button:hover {
+		  background: #0b7dda;
+		}
 	</style>
 
 
 
-	<style>body { padding: 0; margin: 0; } #map { height: 90%; width: 100vw; }</style>
+	<style>body { padding: 0; margin: 0; } #map {height:90%; width: 100vw; }</style>
 </head>
 <body>
 {% load static %}
 <div class="header">
   <img src="{% static '/images/OSMlogo.jpg' %}" alt="My image">
   <h1>Assignment 1 - PWA</h1>
+  <input type="text" placeholder="Search.." id="search" name="search">
+  <button onclick="getResults(document.getElementById('search').value)">Call function</button>
 </div>
 
 
 <div id='map'></div>
+<!--{% leaflet_map "map" callback="window.map_init_basic" %} -->
 
 <script>
+
+	function map_init_basic (map) {
+                    var map = map;
+
+
+                }
+
+    function getResults(SearchTerm) {
+		const xhttp = new XMLHttpRequest();
+        xhttp.open("POST", "func", true);
+        xhttp.send(SearchTerm);
+
+
+		xhttp.onload = function() {
+			if (xhttp.status != 200) { // analyze HTTP status of the response
+				alert(`Error ${xhttp.status}: ${xhttp.statusText}`); // e.g. 404: Not Found
+                var myObj = JSON.parse(xhttp.responseText);
+			} else { // show the result
+				alert(`Done, got ${xhttp.response.length} bytes`); // responseText is the server
+			}
+			alert(console.log(`${xhttp.responseText}`));
+            for (var i=0;i<myObj.COLUMNS.length;i++) {
+                var lon = myObj.COLUMNS[i].geometry.coordinates[0] ;
+                var lat = myObj.COLUMNS[i].geometry.coordinates[1] ;
+			    alert(console.log(`${lon}`));
+            }
+
+            //var myJSON = JSON.stringify(xhttp.response)
+            //alert(console.log(`${myJSON}`));
+		};
+
+		xhttp.onerror = function() {
+
+            alert(console.log(`Error ${xhttp.status}: ${xhttp.statusText}`));// e.g. 404: Not Found
+            alert(console.log(`Done, got ${xhttp.response.length} bytes`)); // responseText is the server
+		};
+	}
+
 	var map = L.map('map').fitWorld();
 
 	L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw', {
-		maxZoom: 18,
-		attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, ' +
-			'<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
-			'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
-		id: 'mapbox.streets'
-	}).addTo(map);
+						maxZoom: 18,
+						attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, ' +
+							'<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+							'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+						id: 'mapbox.streets'
+					}).addTo(map);
 
 	function onLocationFound(e) {
 		var radius = e.accuracy / 2;
@@ -78,6 +149,9 @@
 	map.on('locationerror', onLocationError);
 
 	map.locate({setView: true, maxZoom: 16});
+
+
+
 </script>
 
 

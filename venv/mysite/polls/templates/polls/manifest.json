@@ -3,7 +3,7 @@
   "name": "Assignment 1 - PWA",
   "icons": [
     {
-      "src": "/images/OSMlogo.jpg",
+      "src": "static/images/OSMlogo.jpg",
       "type": "image/jpg",
       "sizes": "1024x1024"
     }
